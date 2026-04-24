@@ -4,7 +4,7 @@ import { parseArgs } from "node:util";
 import { DEFAULT_NAMESPACE, downloadTemplate, getTypstPackagesDir, resolveTypstDataDir } from "./index";
 
 const USAGE =
-  "Usage: typst-download <git-repository-url> [--namespace <name>] [--data-dir <path>] [--force]";
+  "Usage: typst-dl <git-repository-url> [--namespace <name>] [--data-dir <path>] [--force]";
 
 interface CliOptions {
   inputUrl?: string;

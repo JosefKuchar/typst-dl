@@ -1,27 +1,27 @@
-# typst-download
+# typst-dl
 
 Download a Typst package from an HTTP(S) Git repository into Typst's local package directory.
 
 ## Install
 
 ```bash
-npm install -g typst-download
+npm install -g typst-dl
 ```
 
 You can also run it without installing:
 
 ```bash
-npx typst-download <git-repository-url>
+npx typst-dl <git-repository-url>
 ```
 
 ## CLI usage
 
 ```bash
-npx typst-download https://github.com/stuxf/basic-typst-resume-template
+npx typst-dl https://github.com/stuxf/basic-typst-resume-template
 ```
 
 ```text
-typst-download <git-repository-url> [--namespace <name>] [--data-dir <path>] [--force]
+typst-dl <git-repository-url> [--namespace <name>] [--data-dir <path>] [--force]
 ```
 
 Options:

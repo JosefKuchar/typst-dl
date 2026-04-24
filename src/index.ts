@@ -186,7 +186,7 @@ export function validateNamespace(namespace: string): string {
 }
 
 function createTemporaryCloneDir(tempDirName: string): { tempRoot: string; tempCloneDir: string } {
-  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "typst-download-"));
+  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "typst-dl-"));
   return {
     tempRoot,
     tempCloneDir: path.join(tempRoot, tempDirName),
