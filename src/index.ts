@@ -4,6 +4,9 @@ import path from "node:path";
 import git from "isomorphic-git";
 import http from "isomorphic-git/http/node";
 
+/**
+ * Default Typst package namespace used by the CLI and library entrypoints.
+ */
 export const DEFAULT_NAMESPACE = "git";
 
 export interface RepositoryInfo {
@@ -30,6 +33,9 @@ export interface InstalledTemplate {
   version: string;
 }
 
+/**
+ * Parse and validate a Git repository URL supported by the downloader.
+ */
 export function parseGitRepositoryUrl(input: string): RepositoryInfo {
   let url: URL;
 
@@ -64,6 +70,9 @@ export function parseGitRepositoryUrl(input: string): RepositoryInfo {
   };
 }
 
+/**
+ * Resolve the Typst data directory using the same platform-specific rules as Typst.
+ */
 export function resolveTypstDataDir(): string {
   const homeDir = os.homedir();
 
@@ -78,10 +87,16 @@ export function resolveTypstDataDir(): string {
   return process.env.XDG_DATA_HOME ?? path.join(homeDir, ".local", "share");
 }
 
+/**
+ * Resolve the base package directory used by Typst for installed packages.
+ */
 export function getTypstPackagesDir(dataDir = resolveTypstDataDir()): string {
   return path.join(dataDir, "typst", "packages");
 }
 
+/**
+ * Resolve the final destination for a package installation.
+ */
 export function getTemplateDestination(
   packageInfo: PackageInfo,
   namespace = DEFAULT_NAMESPACE,
@@ -94,6 +109,9 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
 
+/**
+ * Read and validate the package metadata from the repository's `typst.toml`.
+ */
 export async function readPackageInfo(repoDir: string): Promise<PackageInfo> {
   const manifestPath = path.join(repoDir, "typst.toml");
 
@@ -137,7 +155,7 @@ function normalizeRelativePath(filePath: string): string {
   return filePath.split(path.sep).join("/").replace(/^\.\/+/u, "").replace(/\/+$/u, "");
 }
 
-function shouldExcludePath(repoDir: string, filePath: string, excludes: string[]): boolean {
+function shouldExcludePath(repoDir: string, filePath: string, excludes: readonly string[]): boolean {
   const relativePath = normalizeRelativePath(path.relative(repoDir, filePath));
 
   if (relativePath === "") {
@@ -150,6 +168,9 @@ function shouldExcludePath(repoDir: string, filePath: string, excludes: string[]
   });
 }
 
+/**
+ * Validate and normalize a Typst package namespace.
+ */
 export function validateNamespace(namespace: string): string {
   const normalized = namespace.trim();
 
@@ -164,17 +185,15 @@ export function validateNamespace(namespace: string): string {
   return normalized;
 }
 
-export async function downloadTemplate(
-  inputUrl: string,
-  options: DownloadOptions = {},
-): Promise<InstalledTemplate> {
-  const repo = parseGitRepositoryUrl(inputUrl);
-  const namespace = validateNamespace(options.namespace ?? DEFAULT_NAMESPACE);
-  const dataDir = options.dataDir ?? resolveTypstDataDir();
-  const force = options.force ?? false;
+function createTemporaryCloneDir(tempDirName: string): { tempRoot: string; tempCloneDir: string } {
   const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "typst-download-"));
-  const tempCloneDir = path.join(tempRoot, repo.tempDirName);
+  return {
+    tempRoot,
+    tempCloneDir: path.join(tempRoot, tempDirName),
+  };
+}
 
+async function cloneRepository(repo: RepositoryInfo, tempCloneDir: string): Promise<void> {
   try {
     await git.clone({
       fs,
@@ -188,47 +207,81 @@ export async function downloadTemplate(
     const message = error instanceof Error ? error.message : String(error);
     throw new Error(`Failed to clone ${repo.cloneUrl}: ${message}`);
   }
+}
 
-  try {
-    const packageInfo = await readPackageInfo(tempCloneDir);
-    const destination = getTemplateDestination(packageInfo, namespace, dataDir);
+function ensureDestinationAvailable(destination: string, force: boolean): void {
+  if (!fs.existsSync(destination)) {
+    return;
+  }
 
-    if (fs.existsSync(destination)) {
-      if (!force) {
-        throw new Error(`Package already exists: ${destination}`);
+  if (!force) {
+    throw new Error(`Package already exists: ${destination}`);
+  }
+
+  fs.rmSync(destination, { recursive: true, force: true });
+}
+
+function copyPackageFiles(repoDir: string, destination: string, excludeEntries: readonly string[]): void {
+  fs.mkdirSync(path.dirname(destination), { recursive: true });
+  fs.cpSync(repoDir, destination, {
+    recursive: true,
+    filter: (source) => {
+      if (source === repoDir) {
+        return true;
       }
 
-      fs.rmSync(destination, { recursive: true, force: true });
-    }
+      if (path.basename(source) === ".git") {
+        return false;
+      }
 
-    try {
-      fs.mkdirSync(path.dirname(destination), { recursive: true });
-      fs.cpSync(tempCloneDir, destination, {
-        recursive: true,
-        filter: (source) => {
-          if (source === tempCloneDir) {
-            return true;
-          }
+      return !shouldExcludePath(repoDir, source, excludeEntries);
+    },
+  });
+  fs.rmSync(path.join(destination, ".git"), { recursive: true, force: true });
+}
 
-          if (path.basename(source) === ".git") {
-            return false;
-          }
+async function installClonedPackage(
+  repoDir: string,
+  namespace: string,
+  dataDir: string,
+  force: boolean,
+): Promise<InstalledTemplate> {
+  const packageInfo = await readPackageInfo(repoDir);
+  const destination = getTemplateDestination(packageInfo, namespace, dataDir);
 
-          return !shouldExcludePath(tempCloneDir, source, packageInfo.exclude);
-        },
-      });
-      fs.rmSync(path.join(destination, ".git"), { recursive: true, force: true });
-    } catch (error) {
-      fs.rmSync(destination, { recursive: true, force: true });
-      throw error;
-    }
+  ensureDestinationAvailable(destination, force);
 
-    return {
-      destination,
-      namespace,
-      name: packageInfo.name,
-      version: packageInfo.version,
-    };
+  try {
+    copyPackageFiles(repoDir, destination, packageInfo.exclude);
+  } catch (error) {
+    fs.rmSync(destination, { recursive: true, force: true });
+    throw error;
+  }
+
+  return {
+    destination,
+    namespace,
+    name: packageInfo.name,
+    version: packageInfo.version,
+  };
+}
+
+/**
+ * Clone a Typst package repository and install it into Typst's local package directory.
+ */
+export async function downloadTemplate(
+  inputUrl: string,
+  options: DownloadOptions = {},
+): Promise<InstalledTemplate> {
+  const repo = parseGitRepositoryUrl(inputUrl);
+  const namespace = validateNamespace(options.namespace ?? DEFAULT_NAMESPACE);
+  const dataDir = options.dataDir ?? resolveTypstDataDir();
+  const force = options.force ?? false;
+  const { tempRoot, tempCloneDir } = createTemporaryCloneDir(repo.tempDirName);
+
+  try {
+    await cloneRepository(repo, tempCloneDir);
+    return await installClonedPackage(tempCloneDir, namespace, dataDir, force);
   } finally {
     fs.rmSync(tempRoot, { recursive: true, force: true });
   }

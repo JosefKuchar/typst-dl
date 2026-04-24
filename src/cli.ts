@@ -3,6 +3,9 @@
 import { parseArgs } from "node:util";
 import { DEFAULT_NAMESPACE, downloadTemplate, getTypstPackagesDir, resolveTypstDataDir } from "./index";
 
+const USAGE =
+  "Usage: typst-download <git-repository-url> [--namespace <name>] [--data-dir <path>] [--force]";
+
 interface CliOptions {
   inputUrl?: string;
   namespace: string;
@@ -11,7 +14,7 @@ interface CliOptions {
 }
 
 function printUsage(): void {
-  console.error("Usage: typst-download <git-repository-url> [--namespace <name>] [--data-dir <path>] [--force]");
+  console.error(USAGE);
   console.error(`Default namespace: ${DEFAULT_NAMESPACE}`);
   console.error(`Default Typst packages directory: ${getTypstPackagesDir(resolveTypstDataDir())}`);
 }
@@ -59,9 +62,7 @@ function parseArguments(argv: string[]): CliOptions {
   };
 }
 
-async function main(): Promise<void> {
-  const options = parseArguments(process.argv.slice(2));
-
+async function run(options: CliOptions): Promise<void> {
   if (!options.inputUrl) {
     printUsage();
     process.exitCode = 1;
@@ -81,6 +82,10 @@ async function main(): Promise<void> {
     console.error(message);
     process.exitCode = 1;
   }
+}
+
+async function main(): Promise<void> {
+  await run(parseArguments(process.argv.slice(2)));
 }
 
 void main();

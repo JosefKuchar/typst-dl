@@ -2,24 +2,41 @@
 
 Download a Typst package from an HTTP(S) Git repository into Typst's local package directory.
 
-## Usage
+## Install
+
+```bash
+npm install -g typst-download
+```
+
+You can also run it without installing:
 
 ```bash
 npx typst-download <git-repository-url>
 ```
 
-Example:
+## CLI usage
 
 ```bash
 npx typst-download https://github.com/stuxf/basic-typst-resume-template
 ```
 
-## What it does
+```text
+typst-download <git-repository-url> [--namespace <name>] [--data-dir <path>] [--force]
+```
 
-- clones the repository
-- reads `typst.toml` from the repository root
-- detects `package.name` and `package.version`
-- installs the package to:
+Options:
+
+- `--namespace`, `-n`: override the namespace, defaults to `git`
+- `--data-dir`: override Typst's data directory
+- `--force`: replace an already installed `{namespace}/{name}/{version}`
+- `--help`, `-h`: print usage information
+
+## Behavior
+
+- Clones the repository with a shallow clone.
+- Reads `typst.toml` from the repository root.
+- Detects `package.name` and `package.version`.
+- Installs the package to:
 
 ```text
 {data-dir}/typst/packages/{namespace}/{name}/{version}
@@ -33,17 +50,8 @@ Default namespace: `git`
 - macOS: `~/Library/Application Support`
 - Windows: `%APPDATA%`
 
-## Options
-
-```text
-typst-download <git-repository-url> [--namespace <name>] [--data-dir <path>] [--force]
-```
-
-- `--namespace`, `-n`: override the namespace, defaults to `git`
-- `--data-dir`: override Typst's data directory
-- `--force`: replace an already installed `{namespace}/{name}/{version}`
-
 ## Notes
 
-- currently supports HTTP(S) Git repository URLs
-- respects `package.exclude` from `typst.toml`
+- Currently supports HTTP(S) Git repository URLs.
+- Respects `package.exclude` from `typst.toml`.
+- Does not keep the cloned `.git` directory in the installed package.
