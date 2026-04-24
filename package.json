@@ -1,7 +1,7 @@
 {
   "name": "typst-download",
   "version": "1.0.0",
-  "description": "Download Typst packages from GitHub into Typst's local package directory.",
+  "description": "Download Typst packages from HTTP(S) Git repositories into Typst's local package directory.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {
@@ -22,8 +22,8 @@
     "cli",
     "templates"
   ],
-  "author": "",
-  "license": "ISC",
+  "author": "Josef Kuchař <josef.kuchar267@gmail.com> (https://josefkuchar.com)",
+  "license": "MIT",
   "dependencies": {
     "isomorphic-git": "^1.37.5",
     "smol-toml": "^1.6.1"
