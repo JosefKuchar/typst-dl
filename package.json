@@ -1,7 +1,7 @@
 {
   "name": "typst-download",
   "version": "1.0.0",
-  "description": "Download Typst templates from GitHub into a local templates folder.",
+  "description": "Download Typst packages from GitHub into Typst's local package directory.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {
@@ -25,7 +25,8 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "isomorphic-git": "^1.37.5"
+    "isomorphic-git": "^1.37.5",
+    "smol-toml": "^1.6.1"
   },
   "devDependencies": {
     "@types/node": "^25.6.0",
