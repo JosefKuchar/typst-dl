@@ -25,6 +25,25 @@ npx typst-dl <git-repository-url>
 npx typst-dl https://github.com/stuxf/basic-typst-resume-template
 ```
 
+The command prints the installed package identifier:
+
+```text
+Installed @git/<package-name>:<package-version>
+```
+
+Use that identifier in your Typst file with `#import`:
+
+```typst
+#import "@git/<package-name>:<package-version>": *
+```
+
+For example, a package whose `typst.toml` contains `name = "my-package"` and
+`version = "1.0.0"` can be imported as:
+
+```typst
+#import "@git/my-package:1.0.0": *
+```
+
 ```text
 typst-dl <git-repository-url> [--namespace <name>] [--data-dir <path>] [--force]
 ```
