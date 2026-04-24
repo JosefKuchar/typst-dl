@@ -1,68 +1,62 @@
 #!/usr/bin/env node
 
+import { parseArgs } from "node:util";
 import { DEFAULT_NAMESPACE, downloadTemplate, getTypstPackagesDir, resolveTypstDataDir } from "./index";
 
 interface CliOptions {
   inputUrl?: string;
   namespace: string;
   dataDir?: string;
+  force: boolean;
 }
 
 function printUsage(): void {
-  console.error("Usage: typst-download <github-repository-url> [--namespace <name>] [--data-dir <path>]");
+  console.error("Usage: typst-download <git-repository-url> [--namespace <name>] [--data-dir <path>] [--force]");
   console.error(`Default namespace: ${DEFAULT_NAMESPACE}`);
   console.error(`Default Typst packages directory: ${getTypstPackagesDir(resolveTypstDataDir())}`);
 }
 
 function parseArguments(argv: string[]): CliOptions {
-  const options: CliOptions = {
-    namespace: DEFAULT_NAMESPACE,
-  };
+  const { values, positionals } = parseArgs({
+    args: argv,
+    allowPositionals: true,
+    options: {
+      help: {
+        type: "boolean",
+        short: "h",
+        default: false,
+      },
+      namespace: {
+        type: "string",
+        short: "n",
+        default: DEFAULT_NAMESPACE,
+      },
+      "data-dir": {
+        type: "string",
+      },
+      force: {
+        type: "boolean",
+        default: false,
+      },
+    },
+    strict: true,
+  });
 
-  for (let index = 0; index < argv.length; index += 1) {
-    const argument = argv[index];
-
-    if (argument === "--help" || argument === "-h") {
-      printUsage();
-      process.exit(0);
-    }
-
-    if (argument === "--namespace" || argument === "-n") {
-      const value = argv[index + 1];
-
-      if (!value) {
-        throw new Error("Missing value for --namespace.");
-      }
-
-      options.namespace = value;
-      index += 1;
-      continue;
-    }
-
-    if (argument === "--data-dir") {
-      const value = argv[index + 1];
-
-      if (!value) {
-        throw new Error("Missing value for --data-dir.");
-      }
-
-      options.dataDir = value;
-      index += 1;
-      continue;
-    }
-
-    if (argument.startsWith("-")) {
-      throw new Error(`Unknown option: ${argument}`);
-    }
-
-    if (options.inputUrl) {
-      throw new Error("Only one GitHub repository URL can be provided.");
-    }
-
-    options.inputUrl = argument;
+  if (values.help) {
+    printUsage();
+    process.exit(0);
   }
 
-  return options;
+  if (positionals.length > 1) {
+    throw new Error("Only one Git repository URL can be provided.");
+  }
+
+  return {
+    inputUrl: positionals[0],
+    namespace: values.namespace,
+    dataDir: values["data-dir"],
+    force: values.force,
+  };
 }
 
 async function main(): Promise<void> {
@@ -78,6 +72,7 @@ async function main(): Promise<void> {
     const installed = await downloadTemplate(options.inputUrl, {
       namespace: options.namespace,
       dataDir: options.dataDir,
+      force: options.force,
     });
     console.log(`Installed @${installed.namespace}/${installed.name}:${installed.version}`);
     console.log(installed.destination);

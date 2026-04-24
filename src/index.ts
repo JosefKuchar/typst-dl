@@ -7,8 +7,7 @@ import http from "isomorphic-git/http/node";
 export const DEFAULT_NAMESPACE = "git";
 
 export interface RepositoryInfo {
-  owner: string;
-  repo: string;
+  tempDirName: string;
   cloneUrl: string;
 }
 
@@ -21,6 +20,7 @@ export interface PackageInfo {
 export interface DownloadOptions {
   namespace?: string;
   dataDir?: string;
+  force?: boolean;
 }
 
 export interface InstalledTemplate {
@@ -30,7 +30,7 @@ export interface InstalledTemplate {
   version: string;
 }
 
-export function parseGithubRepositoryUrl(input: string): RepositoryInfo {
+export function parseGitRepositoryUrl(input: string): RepositoryInfo {
   let url: URL;
 
   try {
@@ -39,28 +39,28 @@ export function parseGithubRepositoryUrl(input: string): RepositoryInfo {
     throw new Error(`Invalid URL: ${input}`);
   }
 
-  if (url.hostname !== "github.com") {
-    throw new Error("Only github.com repository URLs are supported.");
+  if (url.protocol !== "http:" && url.protocol !== "https:") {
+    throw new Error("Only HTTP(S) Git repository URLs are currently supported.");
   }
 
-  const [owner, repoSegment] = url.pathname.split("/").filter(Boolean);
+  const pathSegments = url.pathname.split("/").filter(Boolean);
+  const repoSegment = pathSegments[pathSegments.length - 1];
 
-  if (!owner || !repoSegment) {
-    throw new Error("Expected a GitHub repository URL in the form https://github.com/<owner>/<repo>.");
+  if (!repoSegment) {
+    throw new Error("Expected a Git repository URL with a repository path.");
   }
 
-  const repo = repoSegment.endsWith(".git")
+  const tempDirName = repoSegment.endsWith(".git")
     ? repoSegment.slice(0, -".git".length)
     : repoSegment;
 
-  if (!repo) {
+  if (!tempDirName) {
     throw new Error("Repository name could not be determined from the URL.");
   }
 
   return {
-    owner,
-    repo,
-    cloneUrl: `https://github.com/${owner}/${repo}.git`,
+    tempDirName,
+    cloneUrl: input,
   };
 }
 
@@ -168,11 +168,12 @@ export async function downloadTemplate(
   inputUrl: string,
   options: DownloadOptions = {},
 ): Promise<InstalledTemplate> {
-  const repo = parseGithubRepositoryUrl(inputUrl);
+  const repo = parseGitRepositoryUrl(inputUrl);
   const namespace = validateNamespace(options.namespace ?? DEFAULT_NAMESPACE);
   const dataDir = options.dataDir ?? resolveTypstDataDir();
+  const force = options.force ?? false;
   const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "typst-download-"));
-  const tempCloneDir = path.join(tempRoot, repo.repo);
+  const tempCloneDir = path.join(tempRoot, repo.tempDirName);
 
   try {
     await git.clone({
@@ -193,7 +194,11 @@ export async function downloadTemplate(
     const destination = getTemplateDestination(packageInfo, namespace, dataDir);
 
     if (fs.existsSync(destination)) {
-      throw new Error(`Package already exists: ${destination}`);
+      if (!force) {
+        throw new Error(`Package already exists: ${destination}`);
+      }
+
+      fs.rmSync(destination, { recursive: true, force: true });
     }
 
     try {
