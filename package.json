@@ -24,6 +24,14 @@
   ],
   "author": "Josef Kuchař <josef.kuchar267@gmail.com> (https://josefkuchar.com)",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/JosefKuchar/typst-dl.git"
+  },
+  "bugs": {
+    "url": "https://github.com/JosefKuchar/typst-dl/issues"
+  },
+  "homepage": "https://github.com/JosefKuchar/typst-dl#readme",
   "dependencies": {
     "isomorphic-git": "^1.37.5",
     "smol-toml": "^1.6.1"
