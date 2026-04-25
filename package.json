@@ -1,6 +1,6 @@
 {
   "name": "typst-dl",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Download Typst packages from HTTP(S) Git repositories into Typst's local package directory.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
